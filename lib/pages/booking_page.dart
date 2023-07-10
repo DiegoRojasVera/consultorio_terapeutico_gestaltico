@@ -7,7 +7,6 @@ import 'package:consultorio_terapeutico_gestaltico/providers/services_provider.d
 import 'package:consultorio_terapeutico_gestaltico/utils/utils.dart';
 import 'package:consultorio_terapeutico_gestaltico/widgets/booking_action_button.dart';
 import 'package:consultorio_terapeutico_gestaltico/widgets/calendar.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:http/http.dart' as http;
@@ -30,73 +29,65 @@ class BookingPage extends StatefulWidget {
 }
 
 class _BookingPageState extends State<BookingPage> {
+  User? user;
+  String? admin;
+  Stylist? selectedStylist; // Agrega esta propiedad
+
+
   @override
   void initState() {
     super.initState();
-    () async {
-      await Future.delayed(Duration.zero);
-      final service = ModalRoute.of(context)!.settings.arguments as Service;
-      final servicesProvider = Provider.of<ServicesProvider>(
-        context,
-        listen: false,
-      );
-//      servicesProvider.clean();
-      servicesProvider.loadServiceForBooking(service);
-    }();
-    getButtom();
+    getButton();
+    loadService();
   }
 
-  void _showAlertDialog() {
-    showDialog(
-        context: context,
-        builder: (buildcontext) {
-          return AlertDialog(
-            title: const Text("Mensaje"),
-            content: const Text(
-                "Para poder llevar a cabo las reservas, es necesario iniciar sesión."),
-            actions: <Widget>[
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Utils.secondaryColor),
-                onPressed: () {
-                  Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (context) => const Login()),
-                      (route) => false);
-                },
-                child: const Text(
-                  "Iniciar sesión",
-                  style: TextStyle(color: Colors.white),
-                ),
-              )
-            ],
-          );
-        });
+  void loadService() async {
+    await Future.delayed(Duration.zero);
+    final service = ModalRoute.of(context)?.settings.arguments as Service;
+    final servicesProvider =
+        Provider.of<ServicesProvider>(context, listen: false);
+    servicesProvider.loadServiceForBooking(service);
   }
 
-  User? user;
-  String? Admin;
-
-  void getButtom() async {
+  void getButton() async {
     ApiResponse response = await getUserDetail();
-    user = response.data as User;
-    Admin = user!.admin ?? '';
+    user = response.data as User?;
+    admin = user?.admin;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final service = ModalRoute.of(context)!.settings.arguments as Service;
-    final servicesProvider = Provider.of<ServicesProvider>(context);
-    void getButtom() async {
-      ApiResponse response = await getUserDetail();
-      user = response.data as User;
-      Admin = user!.admin ?? '';
-      if (kDebugMode) {
-        print("${Admin!}Verificación de Admin o cliente");
-      }
-      if (Admin == "true") {
-        if (kDebugMode) {
-          print("modo Admin");
-        }
+  void showAlertDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext buildContext) {
+        return AlertDialog(
+          title: const Text("Mensaje"),
+          content: const Text(
+              "Para poder llevar a cabo las reservas, es necesario iniciar sesión."),
+          actions: <Widget>[
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Utils.secondaryColor),
+              onPressed: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const Login()),
+                    (route) => false);
+              },
+              child: const Text(
+                "Iniciar sesión",
+                style: TextStyle(color: Colors.white),
+              ),
+            )
+          ],
+        );
+      },
+    );
+  }
+
+  void bookAppointment(ServicesProvider servicesProvider) {
+    if (user == null) {
+      showAlertDialog();
+    } else {
+      if (admin == "true") {
         showModalBottomSheet<void>(
           context: context,
           isScrollControlled: true,
@@ -105,9 +96,6 @@ class _BookingPageState extends State<BookingPage> {
           },
         );
       } else {
-        if (kDebugMode) {
-          print("modo cliente");
-        }
         showModalBottomSheet<void>(
           context: context,
           isScrollControlled: true,
@@ -117,6 +105,12 @@ class _BookingPageState extends State<BookingPage> {
         );
       }
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final service = ModalRoute.of(context)?.settings.arguments as Service;
+    final servicesProvider = Provider.of<ServicesProvider>(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -143,16 +137,8 @@ class _BookingPageState extends State<BookingPage> {
               label: 'Reservar ahora',
               onPressed: !servicesProvider.canFinalizeAppointment
                   ? null
-                  : () async {
-                      if (user == null) {
-                        print(user);
-                        _showAlertDialog();
-                        print("es nulo");
-                      } else {
-                        getButtom();
-                      }
-                    },
-            )
+                  : () => bookAppointment(servicesProvider),
+            ),
           ],
         ),
       ),
@@ -218,7 +204,7 @@ class _BookingMainContent extends StatelessWidget {
               const Calendar(),
               const _Subtitle(subtitle: 'Estilistas'),
               _StylistsList(
-                  stylists: servicesProvider.bookingService!.stylists),
+                  stylists: servicesProvider.bookingService!.stylists, selectedStylist: null,),
               const SizedBox(height: 10.0),
               const _Subtitle(subtitle: 'Tiempo disponible'),
               const SizedBox(height: 10.0),
@@ -293,13 +279,28 @@ class _BookingTime extends StatelessWidget {
   }
 }
 
-class _StylistsList extends StatelessWidget {
+class _StylistsList extends StatefulWidget {
   const _StylistsList({
     Key? key,
     required this.stylists,
+    required this.selectedStylist,
   }) : super(key: key);
 
   final List<Stylist> stylists;
+  final Stylist? selectedStylist;
+
+  @override
+  _StylistsListState createState() => _StylistsListState();
+}
+
+class _StylistsListState extends State<_StylistsList> {
+  Stylist? selectedStylist;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedStylist = widget.selectedStylist;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -310,17 +311,15 @@ class _StylistsList extends StatelessWidget {
       height: 210.0,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: stylists.length,
+        itemCount: widget.stylists.length,
         itemBuilder: (_, int index) {
-          final stylist = stylists[index];
-          final isSelected = servicesProvider.stylist != null &&
-              servicesProvider.stylist?.id == stylist.id &&
-              currentDate == servicesProvider.currentDate; // Comprobar si la fecha se ha modificado
+          final stylist = widget.stylists[index];
+          final isSelected = stylist == selectedStylist && currentDate == servicesProvider.currentDate;
 
           return Padding(
             padding: EdgeInsets.only(
               left: index == 0 ? 20.0 : 0.0,
-              right: index == stylists.length - 1 ? 60.0 : 20.0,
+              right: index == widget.stylists.length - 1 ? 60.0 : 20.0,
             ),
             child: StylistCard(
               stylist: stylist,
@@ -328,6 +327,9 @@ class _StylistsList extends StatelessWidget {
               onTap: () {
                 if (!isSelected) {
                   servicesProvider.stylist = stylist;
+                  setState(() {
+                    selectedStylist = stylist;
+                  });
                 }
               },
             ),
@@ -364,7 +366,7 @@ class StylistCard extends StatelessWidget {
   const StylistCard({
     Key? key,
     required this.stylist,
-    this.isSelected = false, // Establecer isSelected en false por defecto
+    required this.isSelected,
     required this.onTap,
   }) : super(key: key);
 
@@ -398,12 +400,12 @@ class StylistCard extends StatelessWidget {
     return Material(
       child: InkWell(
         borderRadius: const BorderRadius.all(Radius.circular(10.0)),
-        onTap: isSelected ? null : onTap,
+        onTap: onTap,
         child: Ink(
           padding: const EdgeInsets.all(15.0),
           decoration: BoxDecoration(
             borderRadius: const BorderRadius.all(Radius.circular(10.0)),
-            color: Colors.white,
+            color: isSelected ? Utils.primaryColor : Colors.white,
             border: Border.all(
               color: isSelected ? Utils.primaryColor : Utils.grayColor,
               width: 2.0,

@@ -9,14 +9,12 @@ class Calendar extends StatelessWidget {
   const Calendar({Key? key}) : super(key: key);
 
   @override
-  @override
   Widget build(BuildContext context) {
     ServicesProvider servicesProvider = Provider.of<ServicesProvider>(context);
 
     final int currentYear = servicesProvider.year;
     final String currentMonth =
-    servicesProvider.months[servicesProvider.month - 1];
-
+        servicesProvider.months[servicesProvider.month - 1];
     List<Widget> calendarDays = [];
     final today = DateTime.now();
     final startDate = DateTime(
@@ -43,7 +41,6 @@ class Calendar extends StatelessWidget {
           isSelected: servicesProvider.currentDate.compareTo(current) == 0,
           onTap: () async {
             servicesProvider.day = current.day;
-            servicesProvider.hour = 0; // Reiniciar la hora seleccionada a cero
             await servicesProvider.loadServiceForBooking(service);
             print("Se modificó la fecha");
           },
@@ -117,34 +114,34 @@ class _CalendarDay extends StatelessWidget {
         ),
         child: Column(
           children: [
-            const SizedBox(height: 5.0),
             Text(weekDay),
+            const SizedBox(height: 5.0),
             Text(
               "$day",
-              style: const TextStyle(fontSize: 20.0),
+              style: const TextStyle(fontSize: 24.0),
             ),
             const SizedBox(height: 10.0),
             isSelected
                 ? Container(
-              height: 8.0,
-              width: 50.0,
-              decoration: const BoxDecoration(
-                color: Utils.primaryColor,
-              ),
-            )
+                    height: 11.0,
+                    width: 50.0,
+                    decoration: const BoxDecoration(
+                      color: Utils.secondaryColor,
+                    ),
+                  )
                 : Container(
-              height: 6.0,
-              width: 40.0,
-              decoration: const BoxDecoration(
-                color: Colors.transparent,
-                border: Border(
-                  bottom: BorderSide(
-                    color: Utils.grayColor,
-                    width: 1.0,
+                    height: 6.0,
+                    width: 40.0,
+                    decoration: const BoxDecoration(
+                      color: Colors.transparent,
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Utils.grayColor,
+                          width: 1.0,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
